@@ -1,76 +1,75 @@
-using UnityEngine;
-using UnityEngine.InputSystem; 
+﻿using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PickupSystem : MonoBehaviour
 {
     [Header("Settings")]
     public Transform holdArea;
-    
-  
-    public Key pickupKey = Key.F; 
-    
-    public float pickupRange = 5.0f;
-    public float dropForce = 5.0f; 
+    public Key pickupKey = Key.F;
+    public float pickupRange = 5f;
+    public float dropForce = 5f;
+    public LayerMask pickupLayer;
+    public float followSpeed = 10f; // rychlost, jak objekt dohnat
 
     private GameObject heldObj;
     private Rigidbody heldObjRb;
-    public LayerMask pickupLayer; 
+    private Collider heldObjCol;
 
     void Update()
     {
-      
         if (Keyboard.current != null && Keyboard.current[pickupKey].wasPressedThisFrame)
         {
             if (heldObj == null)
             {
-                RaycastHit hit;
-                if (Physics.Raycast(transform.position, transform.forward, out hit, pickupRange, pickupLayer))
-                {
-                    PickupObject(hit.transform.gameObject);
-                }
+                TryPickup();
             }
             else
             {
                 DropObject();
             }
         }
-        
+
         if (heldObj != null)
         {
-            MoveObject();
+            FollowHand();
         }
     }
 
-    void PickupObject(GameObject pickObj)
+    void TryPickup()
     {
-        if (pickObj.GetComponent<Rigidbody>())
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, transform.forward, out hit, pickupRange, pickupLayer))
         {
-            heldObj = pickObj;
-            heldObjRb = pickObj.GetComponent<Rigidbody>();
+            Rigidbody rb = hit.collider.GetComponent<Rigidbody>();
+            if (!rb) return;
 
-            heldObjRb.useGravity = false;
-            heldObjRb.linearDamping = 10;
-            heldObjRb.constraints = RigidbodyConstraints.FreezeRotation;
+            heldObj = rb.gameObject;
+            heldObjRb = rb;
+            heldObjCol = heldObj.GetComponent<Collider>();
 
-            heldObj.transform.parent = holdArea;
-            heldObj.transform.localPosition = Vector3.zero;
-            heldObj.transform.localRotation = Quaternion.identity;
+            // vypnutí fyziky a kolize
+            heldObjRb.isKinematic = true;
+            if (heldObjCol) heldObjCol.enabled = false;
         }
     }
 
     void DropObject()
     {
-        heldObjRb.useGravity = true;
-        heldObjRb.linearDamping = 1;
-        heldObjRb.constraints = RigidbodyConstraints.None;
+        // zapnutí fyziky a kolize
+        heldObjRb.isKinematic = false;
+        if (heldObjCol) heldObjCol.enabled = true;
 
-        heldObj.transform.parent = null;
         heldObjRb.AddForce(transform.forward * dropForce, ForceMode.Impulse);
+
         heldObj = null;
+        heldObjRb = null;
+        heldObjCol = null;
     }
 
-    void MoveObject()
+    void FollowHand()
     {
-        
+        // pohyb objektu transformem – žádná fyzika
+        heldObj.transform.position = Vector3.Lerp(heldObj.transform.position, holdArea.position, followSpeed * Time.deltaTime);
+        heldObj.transform.rotation = Quaternion.Lerp(heldObj.transform.rotation, holdArea.rotation, followSpeed * Time.deltaTime);
     }
 }
