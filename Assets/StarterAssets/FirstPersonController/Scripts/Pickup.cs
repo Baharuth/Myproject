@@ -9,7 +9,7 @@ public class PickupSystem : MonoBehaviour
     public float pickupRange = 5f;
     public float dropForce = 5f;
     public LayerMask pickupLayer;
-    public float followSpeed = 10f; // rychlost, jak objekt dohnat
+    public float followSpeed = 10f;
 
     private GameObject heldObj;
     private Rigidbody heldObjRb;
@@ -47,7 +47,14 @@ public class PickupSystem : MonoBehaviour
             heldObjRb = rb;
             heldObjCol = heldObj.GetComponent<Collider>();
 
-            // vypnutí fyziky a kolize
+            // NASTAVENÍ PROMĚNNÉ
+            Item item = heldObj.GetComponent<Item>();
+            if (item != null)
+            {
+                item.isPickedUp = true;
+                Debug.Log("isPickedUp = true"); // <--- PŘIDÁNO
+            }
+
             heldObjRb.isKinematic = true;
             if (heldObjCol) heldObjCol.enabled = false;
         }
@@ -55,10 +62,16 @@ public class PickupSystem : MonoBehaviour
 
     void DropObject()
     {
-        // zapnutí fyziky a kolize
+        // NASTAVENÍ PROMĚNNÉ ZPĚT
+        Item item = heldObj.GetComponent<Item>();
+        if (item != null)
+        {
+            item.isPickedUp = false;
+            Debug.Log("isPickedUp = false"); // <--- PŘIDÁNO
+        }
+
         heldObjRb.isKinematic = false;
         if (heldObjCol) heldObjCol.enabled = true;
-
         heldObjRb.AddForce(transform.forward * dropForce, ForceMode.Impulse);
 
         heldObj = null;
