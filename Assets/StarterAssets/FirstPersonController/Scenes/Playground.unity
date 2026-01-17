@@ -163,6 +163,7 @@ GameObject:
   - component: {fileID: 327968497}
   - component: {fileID: 327968496}
   - component: {fileID: 327968504}
+  - component: {fileID: 327968505}
   m_Layer: 6
   m_Name: Cylinder
   m_TagString: Untagged
@@ -177,7 +178,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 327968495}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6c74bbf746f54a44ab778b04ca5016c6, type: 3}
   m_Name: 
@@ -5122,6 +5123,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Item
   isPickedUp: 0
+--- !u!114 &327968505
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 327968495}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f03ae90bdfc699547b87a502eb694b48, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FireExting
+  foamParticles: {fileID: 327968498}
+  extinguishPower: 1
 --- !u!1 &542508511
 GameObject:
   m_ObjectHideFlags: 0
@@ -10579,7 +10594,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 705e9a2ad461fad429e21bfcd06ed807, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParticleDamage
-  damage: 30
+  damagePerSecond: 10
 --- !u!65 &1184358297
 BoxCollider:
   m_ObjectHideFlags: 0
