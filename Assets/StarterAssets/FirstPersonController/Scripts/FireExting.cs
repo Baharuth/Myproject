@@ -3,47 +3,48 @@ using UnityEngine.InputSystem;
 
 public class FireExting : MonoBehaviour
 {
-    [Header("Reference")]
     public ParticleSystem foamParticles;
-    public float extinguishPower = 1f; // Síla hašení jedné èástice
+    public float extinguishPower = 20f; // Síla hašení za sekundu
     private Item itemScript;
 
     void Start()
     {
         itemScript = GetComponent<Item>();
-        if (foamParticles != null) foamParticles.Stop();
     }
 
     void Update()
     {
         if (itemScript == null) return;
 
-        if (itemScript.isPickedUp && Mouse.current.leftButton.isPressed)
+        bool isSpraying = itemScript.isPickedUp && Mouse.current.leftButton.isPressed;
+
+        if (isSpraying)
         {
-            if (!foamParticles.isPlaying)
-            {
-                foamParticles.Play();
-                Debug.Log("Hasièák støíká!");
-            }
+            if (!foamParticles.isPlaying) foamParticles.Play();
+
+            // RUÈNÍ DETEKCE: Vystøelíme neviditelný paprsek (Raycast)
+            // nebo zkontrolujeme, co je pøed námi
+            ShootExtinguishRay();
         }
         else
         {
-            if (foamParticles.isPlaying)
-            {
-                foamParticles.Stop();
-                Debug.Log("Hasièák zastaven.");
-            }
+            if (foamParticles.isPlaying) foamParticles.Stop();
         }
     }
 
-    // NOVÁ ÈÁST: Detekce nárazu pìny do ohnì
-    private void OnParticleCollision(GameObject other)
+    void ShootExtinguishRay()
     {
-        // Zkontrolujeme, zda jsme zasáhli nìco, co má skript FireSource
-        FireSource fire = other.GetComponent<FireSource>();
-        if (fire != null)
+        RaycastHit hit;
+        // Støílíme dopøedu z hasièáku do vzdálenosti 5 metrù
+        if (Physics.Raycast(transform.position, transform.forward, out hit, 5f))
         {
-            fire.ReduceFire(extinguishPower);
+            FireSource fire = hit.collider.GetComponent<FireSource>();
+            if (fire != null)
+            {
+                // Hasíme pøímo pøes metodu v ohni
+                fire.ReduceFire(extinguishPower * Time.deltaTime);
+                Debug.Log("Raycast trefil oheò!");
+            }
         }
     }
 }
