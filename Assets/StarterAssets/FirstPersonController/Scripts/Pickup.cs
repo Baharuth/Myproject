@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PickupSystem : MonoBehaviour
+public class Pickup : MonoBehaviour
 {
     [Header("Settings")]
     public Transform holdArea;
@@ -47,12 +47,20 @@ public class PickupSystem : MonoBehaviour
             heldObjRb = rb;
             heldObjCol = heldObj.GetComponent<Collider>();
 
-            // NASTAVENÍ PROMĚNNÉ
+            // Pokusíme se najít skript Item kdekoli na objektu
             Item item = heldObj.GetComponent<Item>();
+            if (item == null) item = heldObj.GetComponentInParent<Item>();
+            if (item == null) item = heldObj.GetComponentInChildren<Item>();
+
             if (item != null)
             {
                 item.isPickedUp = true;
-                Debug.Log("isPickedUp = true"); // <--- PŘIDÁNO
+                Debug.Log("isPickedUp = true");
+            }
+            else
+            {
+                // Pokud zvedneš věc, co nemá skript Item, vypíše se varování
+                Debug.LogWarning("Zvednuto, ale objekt nemá skript 'Item'!");
             }
 
             heldObjRb.isKinematic = true;
@@ -62,12 +70,14 @@ public class PickupSystem : MonoBehaviour
 
     void DropObject()
     {
-        // NASTAVENÍ PROMĚNNÉ ZPĚT
         Item item = heldObj.GetComponent<Item>();
+        if (item == null) item = heldObj.GetComponentInParent<Item>();
+        if (item == null) item = heldObj.GetComponentInChildren<Item>();
+
         if (item != null)
         {
             item.isPickedUp = false;
-            Debug.Log("isPickedUp = false"); // <--- PŘIDÁNO
+            Debug.Log("isPickedUp = false");
         }
 
         heldObjRb.isKinematic = false;
@@ -81,7 +91,6 @@ public class PickupSystem : MonoBehaviour
 
     void FollowHand()
     {
-        // pohyb objektu transformem – žádná fyzika
         heldObj.transform.position = Vector3.Lerp(heldObj.transform.position, holdArea.position, followSpeed * Time.deltaTime);
         heldObj.transform.rotation = Quaternion.Lerp(heldObj.transform.rotation, holdArea.rotation, followSpeed * Time.deltaTime);
     }
