@@ -3,6 +3,9 @@ using UnityEngine.InputSystem;
 
 public class Pickup : MonoBehaviour
 {
+    [Header("UI Settings")]
+    public GameObject pickupMessageUI; // Sem přetáhni Text objekt
+
     [Header("Settings")]
     public Transform holdArea;
     public Key pickupKey = Key.F;
@@ -15,57 +18,98 @@ public class Pickup : MonoBehaviour
     private Rigidbody heldObjRb;
     private Collider heldObjCol;
 
+    // Proměnná pro objekt, na který se právě díváme (ale ještě nedržíme)
+    private GameObject currentTargetObj;
+
+    void Start()
+    {
+        if (pickupMessageUI != null) pickupMessageUI.SetActive(false);
+    }
+
     void Update()
     {
-        if (Keyboard.current != null && Keyboard.current[pickupKey].wasPressedThisFrame)
+        // 1. Pokud už něco držíme, řešíme jen pohyb a položení
+        if (heldObj != null)
         {
-            if (heldObj == null)
-            {
-                TryPickup();
-            }
-            else
+            FollowHand();
+
+            // Skryjeme UI a vymažeme cíl, protože máme plné ruce
+            if (pickupMessageUI != null) pickupMessageUI.SetActive(false);
+            currentTargetObj = null;
+
+            // Položení
+            if (Keyboard.current != null && Keyboard.current[pickupKey].wasPressedThisFrame)
             {
                 DropObject();
             }
         }
-
-        if (heldObj != null)
+        else
         {
-            FollowHand();
+            // 2. Pokud nic nedržíme -> Hledáme (Raycast běží každý frame)
+            DetectObjectInFront();
+
+            // Zvednutí (použije výsledek z DetectObjectInFront)
+            if (Keyboard.current != null && Keyboard.current[pickupKey].wasPressedThisFrame)
+            {
+                if (currentTargetObj != null)
+                {
+                    PerformPickup(currentTargetObj);
+                }
+            }
         }
     }
 
-    void TryPickup()
+    // Tato metoda běží pořád a zjišťuje, na co koukáme
+    void DetectObjectInFront()
     {
         RaycastHit hit;
+
+        // Raycast vystřelíme TADY a výsledek si uložíme
         if (Physics.Raycast(transform.position, transform.forward, out hit, pickupRange, pickupLayer))
         {
-            Rigidbody rb = hit.collider.GetComponent<Rigidbody>();
-            if (!rb) return;
-
-            heldObj = rb.gameObject;
-            heldObjRb = rb;
-            heldObjCol = heldObj.GetComponent<Collider>();
-
-            // Pokusíme se najít skript Item kdekoli na objektu
-            Item item = heldObj.GetComponent<Item>();
-            if (item == null) item = heldObj.GetComponentInParent<Item>();
-            if (item == null) item = heldObj.GetComponentInChildren<Item>();
+            // Zkontrolujeme, zda je to Item
+            Item item = hit.collider.GetComponent<Item>();
+            if (item == null) item = hit.collider.GetComponentInParent<Item>();
+            if (item == null) item = hit.collider.GetComponentInChildren<Item>();
 
             if (item != null)
             {
-                item.isPickedUp = true;
-                Debug.Log("isPickedUp = true");
-            }
-            else
-            {
-                // Pokud zvedneš věc, co nemá skript Item, vypíše se varování
-                Debug.LogWarning("Zvednuto, ale objekt nemá skript 'Item'!");
-            }
+                // Našli jsme validní předmět -> Uložíme ho do proměnné
+                currentTargetObj = hit.collider.attachedRigidbody ? hit.collider.attachedRigidbody.gameObject : hit.collider.gameObject;
 
-            heldObjRb.isKinematic = true;
-            if (heldObjCol) heldObjCol.enabled = false;
+                // Zapneme UI
+                if (pickupMessageUI != null) pickupMessageUI.SetActive(true);
+                return;
+            }
         }
+
+        // Pokud Raycast nic netrefil nebo to nebyl Item:
+        currentTargetObj = null;
+        if (pickupMessageUI != null) pickupMessageUI.SetActive(false);
+    }
+
+    // Tato metoda se zavolá jen když zmáčkneš F a currentTargetObj existuje
+    void PerformPickup(GameObject target)
+    {
+        Rigidbody rb = target.GetComponent<Rigidbody>();
+        if (!rb) return;
+
+        heldObj = target;
+        heldObjRb = rb;
+        heldObjCol = heldObj.GetComponent<Collider>();
+
+        // Nastavíme logiku Itemu
+        Item item = heldObj.GetComponent<Item>();
+        if (item == null) item = heldObj.GetComponentInParent<Item>();
+        if (item == null) item = heldObj.GetComponentInChildren<Item>();
+
+        if (item != null)
+        {
+            item.isPickedUp = true;
+        }
+
+        heldObjRb.isKinematic = true;
+        if (heldObjCol) heldObjCol.enabled = false;
     }
 
     void DropObject()
@@ -77,7 +121,6 @@ public class Pickup : MonoBehaviour
         if (item != null)
         {
             item.isPickedUp = false;
-            Debug.Log("isPickedUp = false");
         }
 
         heldObjRb.isKinematic = false;
