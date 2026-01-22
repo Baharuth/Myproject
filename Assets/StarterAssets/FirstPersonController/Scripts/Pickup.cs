@@ -1,10 +1,13 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro; // Nutné pro TextMeshPro
 
 public class Pickup : MonoBehaviour
 {
     [Header("UI Settings")]
-    public GameObject pickupMessageUI; // Sem přetáhni Text objekt
+    public GameObject pickupMessageUI; // Panel pozadí (volitelné)
+    public TextMeshProUGUI pickupText; // Text: "Zmáčkni F..."
+    public TextMeshProUGUI heldItemText; // NOVÉ: Text: "Držíš: <Jméno>"
 
     [Header("Settings")]
     public Transform holdArea;
@@ -18,23 +21,27 @@ public class Pickup : MonoBehaviour
     private Rigidbody heldObjRb;
     private Collider heldObjCol;
 
-    // Proměnná pro objekt, na který se právě díváme (ale ještě nedržíme)
     private GameObject currentTargetObj;
 
     void Start()
     {
+        // Na začátku vše skryjeme
         if (pickupMessageUI != null) pickupMessageUI.SetActive(false);
+        if (pickupText != null) pickupText.gameObject.SetActive(false);
+        if (heldItemText != null) heldItemText.gameObject.SetActive(false); // Skryjeme text drženého předmětu
     }
 
     void Update()
     {
-        // 1. Pokud už něco držíme, řešíme jen pohyb a položení
+        // 1. Pokud už něco držíme
         if (heldObj != null)
         {
             FollowHand();
 
-            // Skryjeme UI a vymažeme cíl, protože máme plné ruce
+            // Ujistíme se, že nápověda "Zmáčkni F" je pryč
             if (pickupMessageUI != null) pickupMessageUI.SetActive(false);
+            if (pickupText != null) pickupText.gameObject.SetActive(false);
+
             currentTargetObj = null;
 
             // Položení
@@ -45,10 +52,10 @@ public class Pickup : MonoBehaviour
         }
         else
         {
-            // 2. Pokud nic nedržíme -> Hledáme (Raycast běží každý frame)
+            // 2. Pokud nic nedržíme
             DetectObjectInFront();
 
-            // Zvednutí (použije výsledek z DetectObjectInFront)
+            // Zvednutí
             if (Keyboard.current != null && Keyboard.current[pickupKey].wasPressedThisFrame)
             {
                 if (currentTargetObj != null)
@@ -59,36 +66,35 @@ public class Pickup : MonoBehaviour
         }
     }
 
-    // Tato metoda běží pořád a zjišťuje, na co koukáme
     void DetectObjectInFront()
     {
         RaycastHit hit;
-
-        // Raycast vystřelíme TADY a výsledek si uložíme
         if (Physics.Raycast(transform.position, transform.forward, out hit, pickupRange, pickupLayer))
         {
-            // Zkontrolujeme, zda je to Item
             Item item = hit.collider.GetComponent<Item>();
             if (item == null) item = hit.collider.GetComponentInParent<Item>();
             if (item == null) item = hit.collider.GetComponentInChildren<Item>();
 
             if (item != null)
             {
-                // Našli jsme validní předmět -> Uložíme ho do proměnné
                 currentTargetObj = hit.collider.attachedRigidbody ? hit.collider.attachedRigidbody.gameObject : hit.collider.gameObject;
 
-                // Zapneme UI
+                // Zobrazíme nápovědu pro sebrání
                 if (pickupMessageUI != null) pickupMessageUI.SetActive(true);
+                if (pickupText != null)
+                {
+                    pickupText.text = "Zmáčkni [F] pro sebrání: " + item.itemName;
+                    pickupText.gameObject.SetActive(true);
+                }
                 return;
             }
         }
 
-        // Pokud Raycast nic netrefil nebo to nebyl Item:
         currentTargetObj = null;
         if (pickupMessageUI != null) pickupMessageUI.SetActive(false);
+        if (pickupText != null) pickupText.gameObject.SetActive(false);
     }
 
-    // Tato metoda se zavolá jen když zmáčkneš F a currentTargetObj existuje
     void PerformPickup(GameObject target)
     {
         Rigidbody rb = target.GetComponent<Rigidbody>();
@@ -98,7 +104,7 @@ public class Pickup : MonoBehaviour
         heldObjRb = rb;
         heldObjCol = heldObj.GetComponent<Collider>();
 
-        // Nastavíme logiku Itemu
+        // Získání informací o itemu
         Item item = heldObj.GetComponent<Item>();
         if (item == null) item = heldObj.GetComponentInParent<Item>();
         if (item == null) item = heldObj.GetComponentInChildren<Item>();
@@ -106,6 +112,13 @@ public class Pickup : MonoBehaviour
         if (item != null)
         {
             item.isPickedUp = true;
+
+            // --- ZDE JE NOVÁ ČÁST PRO TEXT DRŽENÉHO PŘEDMĚTU ---
+            if (heldItemText != null)
+            {
+                heldItemText.text = "Držíš: " + item.itemName;
+                heldItemText.gameObject.SetActive(true); // Zapneme text "Držíš..."
+            }
         }
 
         heldObjRb.isKinematic = true;
@@ -121,6 +134,12 @@ public class Pickup : MonoBehaviour
         if (item != null)
         {
             item.isPickedUp = false;
+        }
+
+        // --- SKRYJEME TEXT DRŽENÉHO PŘEDMĚTU ---
+        if (heldItemText != null)
+        {
+            heldItemText.gameObject.SetActive(false);
         }
 
         heldObjRb.isKinematic = false;
